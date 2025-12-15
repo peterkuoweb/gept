@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vocab-master-v3'; // Increment version
+const CACHE_NAME = 'vocab-master-v4'; // Bump version to force update
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -14,13 +14,14 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate: Clean up old caches
+// Activate: Clean up old caches (CRITICAL for fixing blank page issues)
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -68,22 +69,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Strategy for everything else (App Logic) -> Stale-While-Revalidate
+  // Strategy for everything else (App Logic) -> Network First to fix stale HTML issues
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      const fetchPromise = fetch(event.request).then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => {
-                cache.put(event.request, responseToCache);
-            });
-        }
-        return networkResponse;
-      }).catch(() => {
-          // Network failed
-      });
-
-      return cachedResponse || fetchPromise;
+    fetch(event.request).then(networkResponse => {
+      if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+          });
+      }
+      return networkResponse;
+    }).catch(() => {
+        return caches.match(event.request);
     })
   );
 });
