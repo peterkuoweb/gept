@@ -1,0 +1,5 @@
+{
+  "name": "VocabMaster - 每日單字記憶",
+  "description": "A scientific vocabulary learning app using Spaced Repetition and chunking (6 words/lesson) to ensure long-term retention. Features audio pronunciation, progress tracking, and daily reviews.",
+  "requestFramePermissions": []
+}
