@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>VocabMaster - 每日單字 (免安裝版)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM (Development versions for better errors, switch to production for speed) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        font-family: 'Roboto', 'Noto Sans TC', sans-serif;
+        background-color: #f3f4f6;
+        overscroll-behavior-y: none;
+      }
+      .card-flip { perspective: 1000px; }
+      .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+      }
+      .card-flip.flipped .card-inner { transform: rotateY(180deg); }
+      .card-front, .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 1rem;
+      }
+      .card-back { transform: rotateY(180deg); }
+      
+      /* Animation */
+      @keyframes fadeInDown {
+        from { opacity: 0; transform: translate3d(0, -20px, 0); }
+        to { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      .animate-fade-in-down { animation: fadeInDown 0.3s ease-in; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- TYPES & CONSTANTS (Converted from TS) ---
+        const WORDS_PER_LESSON = 6;
+        
+        const AppState = {
+            DASHBOARD: 'DASHBOARD',
+            COURSES: 'COURSES',
+            SETTINGS: 'SETTINGS',
+            SESSION: 'SESSION',
+            SUMMARY: 'SUMMARY'
+        };
+
+        const TaskType = {
+            LEARN: 'LEARN',
+            CHOICE: 'CHOICE',
+            ASSEMBLE: 'ASSEMBLE',
+            SCRAMBLE: 'SCRAMBLE',
+            MATCH: 'MATCH',
+            SPELL: 'SPELL'
+        };
+
+        // --- DATA (Converted from data.ts) ---
+        const rawText = `
+abandon v. 遺棄；放棄
+abnormal adj. 不正常的；反常的；變態的
+aboard adv. 在船（飛機、車等）上
+absolute adj. 確實的；十足的；絕對的
+absorb v. 吸收；使全神貫注
+abstract adj. 抽象的
+abuse v. 濫用；妄用
+academic adj. 學術性的；教學上的
+accent n. 口音；重音
+access n. 進入；入口；取得的方法
+accommodation n. 住所；膳宿
+accomplish v. 完成；達到
+accord v. 一致；符合
+accurate adj. 準確的；精準的
+accuse v. 指控；揭發
+accustomed adj. 習慣於……的；慣常的
+achievement n. 成就；成績
+acid n. 酸；酸類
+acquire v. 取得；掌握；獲得
+adequate adj. 適當的；足夠的
+adjust v. 調整；調節
+aggressive adj. 攻擊的；侵略的；挑釁的
+agriculture n. 農業；農學
+alcoholic n. 酗酒者
+alert n. 警戒；警報
+alternative n. 選擇；可供選擇的事物
+amateur adj. 業餘的；非職業的
+ambassador n. 大使
+amusement n. 娛樂；消遣
+analyze v. 分析；解析
+ambition n. 抱負；野心
+angle n. 角度；看法
+anniversary n. 週年紀念（日）
+announce v. 宣佈；發表
+annoy v. 煩擾；惹惱
+anxiety n. 焦慮；掛念
+apology n. 認錯；道歉
+apparently adv. 顯然地；似乎
+appeal v. 懇請；對（某人）有吸引力
+appetite n. 食慾；胃口；慾望
+applause n. 熱烈讚賞；鼓掌；喝采
+application n. 申請（書）；應用
+appointment n. 指定；約定
+appreciation n. 欣賞；評價；感激
+appropriate adj. 恰當的；合適的
+arise v. 發生；產生；出現
+artificial adj. 人造的；假的
+ascend v. 攀登；上升；升起
+ashamed adj. 感到羞恥的；覺得慚愧的
+assassinate v. 行刺；暗殺
+assemble v. 聚集；集合；裝配
+associate v. 由……聯想到……；使聯合
+astonish v. 使震驚；使驚嚇
+attach v. 附著；繫上
+attempt v. 嘗試；企圖
+attitude n. 態度；看法；姿勢
+authority n. 權威；權限；職權；當局
+average v. 將……平均分配；平均為
+awful adj. 可怕的；令人敬畏的；極壞的
+awkward adj. 尷尬的；棘手的
+babysit v. 當臨時保姆
+background n. 背景；幕後
+baggage n. 行李
+balance n. 平衡；協調
+bankrupt adj. 破產的
+bargain n. 特價商品；交易
+barrier n. 障礙物；阻礙
+battle n. 戰鬥；戰役
+beg v. 乞討；請求；（狗）蹲坐舉前腳於胸前
+behavior n. 行為；舉止
+believable adj. 可信的
+beneath prep. 在……之下
+benefit n. 好處；利益
+blend v. 混合；調和
+blessing n. 幸運的事；上帝的恩賜
+bold adj. 無畏的
+bond n. 維繫；結合
+border n. 邊界；國界
+boycott n. 聯合抵制；杯葛
+bracelet n. 手鐲；手鍊
+bravery n. 勇氣
+breathe v. 呼吸
+breeze n. 微風
+bribe v. 向……行賄；收買
+brilliant adj. 優秀的；傑出的
+browse v. 隨意觀看；瀏覽
+brutal adj. 殘忍的；嚴酷的
+budget n. 預算；經費
+bulletin n. 公告；告示
+burden n. 負擔
+calculator n. 計算機
+campaign n. 宣傳活動；軍事行動
+capable adj. 有能力的；能……的
+capacity n. 容量；能力
+capital n. 首都；大寫
+capture v. 逮捕；俘虜
+carriage n. 車廂；馬車
+casual adj. 隨便的；漫不經心的；偶然的
+catalog n. 目錄
+cease v. 停止；終止
+ceremony n. 典禮；儀式
+certificate n. 證明；文憑
+challenge n. 挑戰
+characteristic n. 特色；特徵
+cherish v. 珍愛；鍾愛
+cigarette n. 香菸
+cinema n. 電影院
+circumstance n. 情況；環境
+circus n. 馬戲團；馬戲表演
+classify v. 將……分類；將……分等級
+climax n. 高潮；頂點
+clumsy adj. 不靈巧的；動作笨拙的
+coincidence n. 巧合；同時發生
+collapse v. 倒塌；崩潰
+combination n. 組合；聯合
+communication n. 通訊；連絡
+compete v. 競爭；比賽
+complaint n. 抱怨；申訴
+complicate v. 使……複雜化
+compliment n. 恭維；讚揚
+concentrate v. 集中注意力；全神貫注
+concept n. 觀念；概念
+conclude v. 斷定；推論出
+condition n. （健康）狀況；地位
+conference n. 會議；討論會
+confess v. 坦白；承認
+conquer v. 征服；擊敗
+consequence n. 結果；後果
+consist v. 由……組成；構成
+constant adj. 不斷的；連續發生的
+construction n. 建築工程；建設
+content adj. 滿足的；滿意的
+contest n. 比賽；競爭
+contrary adj. 相反的；對立的
+contribute v. 貢獻；捐助
+convey v. 表達；傳送
+convince v. 說服；使信服
+cooperate v. 合作；配合
+correspond v. 通信；相符；一致
+counter n. 櫃檯；長桌
+courageous adj. 英勇的；勇敢的
+coward n. 懦夫；膽小鬼
+cram v. 匆促準備應考
+crash v. 猛撞；撞毀
+creature n. 生物；動物
+criticize v. 批評；苛求
+cue v. 暗示；提示
+curiosity n. 好奇心；求知慾
+curl n. 髮髻；捲曲
+curse v. 詛咒；臭罵
+damn n. 絲毫；些微
+dare v. 敢於；激（某人）
+decade n. 十年
+deceive v. 欺騙；矇蔽
+declare v. 宣佈；聲明
+decline v. 婉拒；回絕
+defensive adj. 防衛的；自衛的
+deficit n. 赤字；虧損額
+definition n. 定義；釋義
+delete v. 刪除；消掉
+delicate adj. 易碎的；精巧的
+delight v. 使高興；使快樂
+demand v. 要求；請求
+demonstrate v. 示範；證明
+depart v. 啟程；出發
+departure n. 離開；出發
+depress v. 使沮喪；使消沈
+deserve v. 應受；應得
+despair n. 絕望；失去信心
+desperate adj. 絕望的；不顧一切的
+destination n. 目的地；終點
+device n. 裝置；設備
+devil n. 魔鬼；惡魔
+devote v. 將……奉獻給某事（人）；致力於……
+dialogue n. 對白；對話
+dictation n. 聽寫測驗；口述
+dignity n. 尊嚴；莊嚴
+dip v. 沾；浸
+diploma n. 學位證書；畢業文憑
+disappoint v. 使人失望；使挫折
+disadvantage n. 不利條件；損失
+disapprove v. 不贊同；不喜歡
+disaster n. 災害；不幸
+discipline n. 管教；懲罰
+discount n. 折扣
+disguise v. 偽裝；假扮
+display v. 陳列；展示
+dissatisfaction n. 不滿；不平
+distinguish v. 區別；識別
+distribution n. 分配；分發
+ditch v. 拋棄（俚語用法）；挖水溝
+divine adj. 極好的（口語用法）；神的
+divorce n. 離婚
+dominate v. 支配；統治
+donate v. 捐獻；捐贈
+dormitory = dorm n. 宿舍
+dose n. （藥物的）一劑；一服
+downwards adv. 向下
+doze v. 打瞌睡；打盹
+dramatic adj. 戲劇的；戲劇化的
+dreadful adj. 糟糕的；令人恐懼的
+drill n. 鑽子；練習
+drowsy adj. 使人昏昏欲睡的；睏倦的
+due adj. 到期的；由某人（事）引起的
+dull adj. 單調的；乏味的
+dump v. 傾倒；拋棄
+durable adj. 持久的；耐用的
+dye v. 染色
+dynamic adj. 有活力的；有生氣的
+dynasty n. 朝代
+eager adj. 渴望的；急切的
+earnest adj. 認真的；誠摯的；熱心的
+economy n. 經濟；經濟狀況
+edible adj. 可食用的；適合吃的
+elaborate v. 詳述；詳細說明
+elastic adj. 有彈性的；可伸縮的
+elegant adj. 高雅的；優美的
+elevator n. 電梯
+eliminate v. 消除；消滅
+embassy n. 大使館
+emerge v. 出現；浮現
+emergency n. 緊急情況
+emperor n. 皇帝
+enable v. 使成為可能；使能夠
+encounter n. 遭遇；遇到
+engage v. 佔用（時間、精力等）；使訂婚
+enhance v. 提高；增加
+enlarge v. 擴大；放大（照片）
+enormous adj. 巨大的；龐大的
+enroll v. 登記；註冊
+enterprise n. 企業；事業心
+entertainment n. 娛樂；消遣
+enthusiastic adj. 熱情的；熱心的
+era n. 時代；紀元
+erect v. 建立；使直立
+errand n. 差事；差使
+escalator n. 電扶梯
+essential adj. 不可或缺的；極其重要的
+estimate v. 估計；估量
+evolution n. 演化；進化；發展
+escape v. 逃脫；逃跑
+essay n. 散文；文章
+establish v. 建立；設立；創辦
+etc. = et cetera adv. 等等
+evaluate v. 對……評價；評估
+eventually adv. 最後；終於
+evidence n. 證據
+exaggerate v. 誇張；言過其實
+exceptional adj. 非凡的；卓越的
+exchange v. 交換；兌換
+exclaim v. 呼喊；驚叫
+executive n. 高階主管
+exhaust v. 使精疲力盡；耗盡
+exhibition n. 展覽；展覽會
+existence n. 存在；生存
+expansion n. 擴展；膨脹
+expense n. 花費；開支
+experiment n. 實驗；試驗
+explode v. 使爆炸；爆發
+exploit v. 剝削；利用；開發
+explore v. 探險；探究
+explosion n. 爆炸；爆發
+expose v. 使接觸到；使暴露於
+expression n. 表情；臉色
+extend v. 延長；擴大；延伸
+extinct adj. 絕種的；（火）熄滅的
+extraordinary adj. 離奇的；特別的
+extremely adv. 極端地；非常地
+eyebrow n. 眉毛
+eyesight n. 視力
+fable n. 寓言；傳說
+facility n. 設備；設施
+fade v. 褪色；凋謝
+faint v. 昏倒；昏厥
+faith n. 信任；信心；信仰
+faithful adj. 忠實的
+fake adj. 假的；冒充的
+familiar adj. 熟悉的；常見的
+fantasy n. 幻想；空想
+farewell n. 再會；道別
+fascinate v. 強烈地吸引；使神魂顛倒
+fatal adj. 致命的；無可挽回的
+fate n. 命運
+fiction n. 小說；虛構
+fierce adj. 兇暴的；猛烈的
+finance n. 財源；財政
+flame n. 火焰
+flee v. 逃逸
+flexible adj. 可變通的；有彈性的
+fluent adj. 流利的；流暢的
+foggy adj. 多霧的
+forbid v. 禁止；不允許
+forecast n. 預測；預報
+formula n. 公式；處方
+fortunately adv. 幸運地；僥倖地
+foundation n. 基礎；基地；基金會
+frequent adj. 屢次的；頻繁的
+frustrate v. 挫折；使感到灰心
+fundamental adj. 基礎的；根本的
+furthermore adv. 而且；再者
+gallery n. 畫廊；美術館
+gamble v. 賭博；投機
+gangster n. 幫派；匪徒
+gap n. 間隔；缺口
+gene n. 基因
+generosity n. 慷慨；寬容
+genuine adj. 真正的；真誠的
+gigantic adj. 巨大的；龐大的
+giggle v. 傻笑；咯咯地笑
+glance v. 瞥視；匆匆看一眼
+glide v. 滑行；滑動
+global adj. 全球的；全世界的
+glorious adj. 非常宜人的；光榮的
+glow v. 發亮；發光
+goddess n. 女神；受尊崇的女子
+gossip n. 流言蜚語；閒話
+grab v. 抓住；攫取
+gracious adj. 和藹的；親切的
+gradually adv. 逐步地；漸漸地
+graduation n. 畢業（典禮）
+grasp v. 抓牢；抓緊
+gratitude n. 感激之情；感謝
+gravity n. 地心引力；重力
+greasy adj. 油膩的；含脂肪的
+grieve v. 悲傷；憂傷
+grocery n. 食品雜貨（店）
+guarantee v. 保證；擔保
+guardian n. 監護人；保護人
+guidance n. 指導；引導
+guilty adj. 有罪的；犯罪的
+hairdresser n. 理髮師；美髮師
+handicap n. 障礙；不利條件
+harbor n. 港灣；港口
+harmful adj. 有害的
+harmony n. 和諧；協調
+harsh adj. 嚴厲的；刺耳的
+harvest n. 收穫；收成
+hassle n. 麻煩；爭辯
+hasty adj. 急速的；輕率的
+hatred n. 懷恨；厭惡
+heal v. 治癒；使恢復健康
+heaven n. 天堂
+hence adv. 從此；因此
+herd n. 群
+heroine n. 女英雄；女主角
+hesitate v. 躊躇；猶豫；遲疑不決
+hint n. 暗示
+honeymoon n. 蜜月
+honorable adj. 可敬的；高尚的；榮譽的
+horizon n. 地平線；眼界
+horn n. 喇叭；角
+hose n. 軟管；膠管
+hostage n. 人質
+housekeeper n. 管家
+hug v. 擁抱
+humanity n. 人性；仁慈
+humidity n. 溼氣；溼度
+hurricane n. 颶風
+hush v. （使）安靜下來
+hydrogen n. 氫
+ideal adj. 理想的；完美的
+identical adj. 一模一樣的；完全相同的
+idiom n. 慣用語；成語
+idle v. 遊手好閒；虛度（光陰）
+idol n. 偶像
+ignorant adj. 無知的；不知道的
+illegal adj. 不合法的；非法的
+illness n. 病；疾病
+illustrate v. 插圖於；說明
+imitate v. 模仿
+immediately adv. 立刻；馬上
+immigration n. 移民；移居入境
+impact n. 衝擊力；影響
+impatient adj. 不耐煩；沒耐心
+imperial adj. 帝國的
+impersonal adj. 沒有人情味的；不特指某個人的
+implement v. 實施；執行
+implication n. 含意；暗示
+impose v. 使負擔；將……強加於；打擾
+impressive adj. 令人印象深刻的；感人的
+improvement n. 改進；改善
+inadequate adj. 不足的；不適當的
+incident n. 事件；插曲
+inconvenient adj. 不方便的；造成麻煩的
+indeed adv. 當然；確實
+industrial adj. 工業的；產業的
+inevitable adj. 不可避免的；必然發生的
+inform v. 通知；告知
+ingredient n. 組成部分；配料
+initial adj. 最初的；開始的
+infant n. 嬰兒
+infect v. 傳染；感染
+inference n. 論斷；推斷
+inferior adj. 低劣的；下等的
+inflation n. 通貨膨脹
+inhabitant n. 居民；（某地區）棲息的動物
+inner adj. 內部的；裡面的
+innocent adj. 清白的；無罪的
+inquiry n. 詢問；打聽
+insert v. 插入；嵌入
+inspector n. 檢查員；巡官
+inspiration n. 靈感
+install v. 安裝；安置
+instinct n. 本能；天性
+institution n. 機構；制度
+instruction n. 用法說明；操作手冊
+intensify v. 增強；變激烈
+interference n. 介入；干涉；干預
+intermediate adj. 中等程度的；中級的
+interpretation n. 解釋；詮釋
+introduction n. 介紹；引進
+intrude v. 侵入；闖入
+invade v. 入侵；侵略
+investment n. 投資
+invisible adj. 看不見的；無形的
+irregular adj. 不規則的
+isolation n. 隔離；孤立
+issue n. 發行物；期號
+itch v. 發癢
+ivory n. 象牙；乳白色
+jail n. 監獄
+jam v. 堵住；塞住
+jar n. 罐子
+jaw n. 下顎；下巴；下頷
+jealousy n. 妒忌；猜忌
+jelly n. 果凍；果醬
+jet n. 噴射機
+jewelry n. 珠寶；首飾
+journey n. 旅程；行程
+joyful adj. 高興的；喜悅的
+judgment n. 判斷；裁決；評斷
+jungle n. 叢林
+junior n. 大三、高三學生；年少者
+junk n. 廢棄物
+jury n. 陪審團
+justice n. 正義；公平
+keen adj. 熱心的；熱衷的
+keeper n. 管理員；飼養者
+kettle n. 壺；鍋
+keyboard n. 鍵盤；鍵盤樂器
+kidnap v. 綁架
+kidney n. 腎臟
+kindness n. 仁慈；和藹；好意
+kit n. 成套工具；小箱
+kneel v. 跪下；屈膝
+knight n. 騎士；爵士；武士
+knit v. 編織
+knob n. 把手
+knot n. （繩等的）結
+knowledgeable adj. 博學的；有見識的
+label n. 標籤；標記
+labor n. 勞動；勞工；分娩
+lag v. 走得慢；落後
+landmark n. 地標；里程碑
+landscape n. 風景；景色
+lane n. 車道；小路；巷子
+laser n. 雷射
+launch v. 發射；上市；將……投入市場
+laundry n. 要洗的衣服；洗衣店
+lawn n. 草地；草坪
+leak v. 漏；洩漏
+lean v. 倚靠；傾斜
+lecture n. 講座；演講
+legendary adj. 傳說的；傳奇的
+leisure adj. 空閒的
+liberty n. 自由；自由權
+license n. 許可證；執照；牌照
+limitation n. 限制；界限；侷限
+literature n. 文學作品；文學
+litter n. 廢棄物；垃圾
+lobby n. 大廳
+location n. 位置；場所；地點
+logic n. 邏輯；道理
+loop n. 環；圈
+loosen v. 解開；鬆開
+lotion n. 乳液；化妝水；藥水
+lousy adj. 糟透的
+loyalty n. 忠誠；忠貞
+lullaby n. 搖籃曲；催眠曲
+luxury n. 奢侈品；奢華
+machinery n. 機器；機械
+magnetic adj. 磁鐵的；有磁性
+magnificent adj. 壯麗的；宏偉的；極佳的
+mainly adv. 主要地；大部分地
+mansion n. 大廈；大樓
+manual n. 手冊
+manufacture v. 製造
+marathon n. 馬拉松賽跑
+marble n. 大理石
+margin n. 頁邊空白；邊緣
+masterpiece n. 傑作；名作
+mature adj. 成熟的
+mayor n. 市長
+meadow n. 草地
+meantime n. 其間；與此同時
+medal n. 獎章；紀念章；勳章
+melody n. 旋律；悅耳的聲音
+memo n. 備忘錄；便條；規章
+memorial n. 紀念碑；紀念物
+memorize v. 記住；背熟
+mend v. 修理；修補；逐漸康復
+mental adj. 精神的；心理的
+mention v. 提到；說起
+merchant n. 商人
+mercy n. 憐憫；寬容
+merry adj. 歡樂的；愉快的
+mess v. 弄髒；弄亂
+metro n. 地鐵
+mighty adj. 強而有力的；強大的
+mill n. 磨坊；麵粉廠
+mere adj. 只不過；僅僅
+merit n. 價值；優點
+minimum adj. 最小的；最低的
+minister n. 牧師；神職人員；部長
+minority n. 少數
+minute adj. 微小的；瑣細的
+miracle n. 奇蹟；驚人的事例
+mischief n. 惡作劇；頑皮；胡鬧
+miserable adj. 悲慘的；不幸的；糟糕的
+misleading adj. 引起誤解的
+missile n. 飛彈
+mission n. 任務；使命
+misunderstand v. 誤會；曲解
+mobile adj. 易於移動的；可移動的
+moderate adj. 適度的；有節制的
+modest adj. 謙虛的；端莊的
+monument n. 紀念碑；紀念館
+moonlight n. 月光
+moral n. 教訓；寓意
+moreover adv. 並且；此外
+mortgage n. 抵押；房貸
+motivation n. 刺激；動機
+mug n. 馬克杯
+multiply v. 使相乘；增加；繁殖
+murder v. 謀殺
+murmur v. 低語；低聲說話
+muscle n. 肌肉
+mustache n. 鬍子；髭
+mutual adj. 共同的；互相的
+mystery n. 神秘的事；難以理解的事物
+naked adj. 裸體的
+namely adv. 即；就是
+nap n. 打盹；午睡
+nasty adj. 使人不快的；嚴重的
+nationality n. 國籍
+native adj. 本國的；本土的；原產的
+naturally adv. 自然地；天然地
+navy n. 海軍
+nearby adj. 附近的
+neat adj. 整齊的；整潔的
+necessarily adv. 必定；必然地
+needy adj. 貧窮的；需情感支持的
+neglect v. 忽略；忽視
+negotiation n. 談判；協商
+network v. 拓展人脈
+nevertheless adv. 然而；儘管
+newscaster n. 新聞播報員
+nickname n. 綽號；小名
+nightmare n. 夢魘；惡夢
+noble adj. 高尚的；崇高的
+nonsense n. 廢話；胡說
+normal adj. 正常的；平常的
+normally adv. 通常；正常地
+nourish v. 滋養；養育
+nowadays adv. 現今；現時
+nowhere adv. 到處都沒有；遠不及
+nuclear adj. 原子核的；核心的
+numerous adj. 許多的；很多的
+nun n. 修女；尼姑
+nursery n. 育嬰房；托兒所
+obedient adj. 服從的；順從的
+objection n. 反對；異議
+observation n. 觀察；注意
+obstacle n. 障礙；妨礙
+obtain v. 獲得；得到
+obviously adv. 明顯地；顯然地
+occasion n. 場合；時機
+occupation n. 工作；職業
+occupy v. 佔用；佔領；佔據
+offensive adj. 冒犯的；討厭的
+opera n. 歌劇
+opponent n. 對手；敵手
+opposition n. 反對；敵對
+option n. 選擇
+oral adj. 口頭的；口腔的
+orbit v. 繞軌道運行
+orchestra n. 管絃樂隊
+organ n. 器官
+origin n. 起源；由來
+orphan n. 孤兒
+otherwise adv. 否則；除此之外
+ought aux. 應該
+outcome n. 結果；結局
+output n. 輸出；產量
+outstanding adj. 優秀的；傑出的
+outward adv. 向外地；往外地
+overcome v. 克服；戰勝
+overlook v. 忽略；看漏；俯瞰
+owe v. 欠；歸功於
+oxygen n. 氧氣
+pace n. 一步；步速
+palace n. 皇宮；宮殿
+palm n. 手掌；棕櫚樹
+panel n. 鑲板；討論小組
+panic v. 恐慌；驚慌
+parachute n. 降落傘
+parade n. 遊行；列隊行進
+paradise n. 天堂；天國
+paragraph n. 段；段落
+parallel adj. 平行的；並行的
+partial adj. 部分的；偏袒的
+participate v. 參加；參與
+partnership n. 合夥關係；共同經營
+passion n. 激情；強烈愛好
+passive adj. 被動的；消極的
+patience n. 耐心；耐性
+pave v. 鋪；砌
+paw n. 腳爪；爪子
+peak adj. 高峰的；最高點的
+pebble n. 卵石；礫石
+peculiar adj. 奇怪的；乖僻的
+penalty n. 處罰；刑罰
+percentage n. 百分比；百分率
+perform v. 演出；表演
+permanent adj. 長久的；永久的
+permission n. 許可；准許
+personality n. 個性；性格
+persuade v. 說服；勸服
+plenty n. 豐富；充足；大量
+potential n. 潛力；潛能
+practical adj. 實際的；實踐的
+precise adj. 精確的；精準的
+predict v. 預言；預測
+pregnant adj. 懷孕的；懷胎的
+presentation n. 簡報；發表；呈現
+prevent v. 防止；預防
+previous adj. 以前的；之前的
+privacy n. 隱私；私生活
+privilege n. 特權；特別恩惠
+profitable adj. 有利的；有益的
+protest n. 抗議；反對
+publish v. 出版；刊登
+punch v. 用拳猛擊
+punctual adj. 準時的；按時的
+qualify v. 具有資格；取得資格
+quantity n. 數量；量
+quarrel n. 爭吵；爭辯
+quilt n. 被子；被褥
+quote n. 引用句；引述
+rage v. 發怒；大發脾氣
+rank v. 具有……等級；排列
+rarely adv. 很少；難得
+rate n. 速度；速率
+react v. 反應
+reality n. 現實；真實
+receipt n. 收據
+recession n. 經濟衰退；不景氣
+recipe n. 食譜；烹飪法
+recite v. 背誦；詳述
+recognize v. 辨認出；識別
+recommend v. 推薦；介紹
+reference n. 提到；談起
+reflection n. 映像；反射
+refugee n. 逃難者；難民
+refusal n. 拒絕；謝絕
+register v. 登記；註冊
+regulation n. 規則；法令
+rehearsal n. 排練；預演
+related adj. 有親戚關係的；相關的
+relax v. 放鬆；使輕鬆
+release v. 發行；發佈；釋放
+reliable adj. 可靠的；可信賴的
+relieve v. 減輕；緩和
+reluctant adj. 勉強的；不情願的
+remedy n. 治療法；補救辦法
+reminder n. 提醒人記憶之物
+repetition n. 重複；反覆
+representation n. 描寫；表現；代表
+requirement n. 需要；要求
+research v. 研究；調查
+reservation n. 預約；保留
+resident n. 居民；居住者
+resource n. 資源；物資
+response n. 回答；反應
+responsibility n. 責任；職責
+restless adj. 靜不下來的；煩躁的
+restriction n. 限制；約束
+retain v. 保留；保有
+retreat v. 撤退；退卻
+reveal v. 展現；顯露
+revenge n. 報復；報仇
+revolution n. 革命
+rhyme v. 押韻；成韻
+ridiculous adj. 可笑的；荒唐的
+ripe adj. 成熟的
+roast adj. 烤好的；烘烤的
+robbery n. 搶劫；搶奪
+rough adj. 粗糙的；不平的
+route n. 路線；路程
+routine n. 例行公事；慣例
+rubbish n. 垃圾；廢棄物
+rumor n. 謠言；謠傳
+rural adj. 農村的；田園的
+rusty adj. 生鏽的；荒廢的
+sacrifice v. 犧牲；供奉
+sadden v. 使悲傷；使難過
+salary n. 薪水；薪資
+scan v. 掃描；細看；審視
+scarce adj. 不足的；稀少的
+scary adj. 可怕的；嚇人的
+scenery n. 風景；景色
+schedule n. 進度表；課程表；行程表
+scheme v. 密謀；策劃
+scientific adj. 科學的；科學上的
+scold v. 斥責；責罵
+scoop n. 一勺；杓子
+scratch n. 抓痕；刮擦痕跡
+scream v. 尖叫；驚叫
+screw n. 螺絲釘；螺旋體
+security n. 保全；保安
+sensitive adj. 敏感的；體恤別人的
+settle v. 安頓；定居；決定
+severe adj. 嚴重的；劇烈的
+shadow n. 陰影；影子
+shallow adj. 淺的；膚淺的
+shame n. 憾事；羞恥心
+shortcut n. 捷徑；近路
+shuttle n. 接駁車；太空梭
+sightseeing n. 觀光；遊覽
+signature n. 簽名；簽字
+significant adj. 重要的；重大的
+singular adj. 單數的
+situation n. 處境；情況
+slang n. 俚語
+skip v. 蹦蹦跳跳；跳過；略過
+slave n. 奴隸
+slice n. 薄片；切片
+slightly adv. 稍微地；輕微地
+slogan n. 口號；標語
+smooth adj. 光滑的；平坦的
+sneeze v. 打噴嚏
+sob v. 嗚咽；啜泣
+somehow adv. 以某種方式；未知何故
+souvenir n. 紀念品；紀念物
+spade n. 鏟子；鍬
+spare adj. 備用的；額外的
+sparkle n. 閃爍；閃耀
+species n. 種類；品種
+specific adj. 特有的；明確的
+spiritual adj. 精神的；心靈的
+spit v. 吐（唾液、痰等）
+splendid adj. 輝煌的；燦爛的
+split v. 裂開；均分
+spoil v. 糟蹋；寵壞；溺愛
+sprinkle v. 淋；灑
+squeeze v. 擠；壓；擰
+squirrel n. 松鼠
+stadium n. 體育場；運動場
+stare v. 盯；凝視
+starve v. 餓死；挨餓
+status n. 地位；身分
+steady adj. 穩固的；穩定的
+stimulate v. 促進；激發
+strategy n. 戰略；策略
+strict adj. 嚴厲的；嚴格的
+stiff adj. 硬的；僵硬的
+stitch n. 一針；縫線；針法
+stock n. 存貨；股票
+story n. 層；故事
+strength n. 力量；體力
+strip v. 剝光；除去
+stubborn adj. 頑固的；倔強的
+stuff n. 東西；所有物
+subtract v. 減；減掉
+suffering n. 痛苦；困難
+sufficient adj. 足夠的；充足的
+suggestion n. 建議；提議
+suicide n. 自殺
+suitable adj. 合適的；合宜的
+summary n. 總結；摘要
+superior n. 上司；長官
+suppose v. 猜想；料想
+supreme adj. 至高的；至上的
+surgery n. 外科手術
+surroundings n. 環境；周圍事物
+survival n. 生存；殘存
+survivor n. 生還者；倖存者
+suspect v. 懷疑；猜想
+swear v. 發誓；斷言
+sweat v. 出汗；冒汗
+switch v. 打開或關閉開關
+syllable n. 音節
+sympathy n. 同情心；同情
+symptom n. 症狀；徵兆
+tale n. 故事
+tasty adj. 味道好的；美味的
+tax n. 稅；賦稅
+tease v. 戲弄；逗弄；挑逗
+technology n. 科技；應用科學
+temper n. 脾氣；性情
+temporary adj. 暫時的；臨時的
+tendency n. 傾向；癖性
+tension n. 緊張；焦慮
+terminal n. 航站大廈；終點
+territory n. 領土；領域
+theme n. 主題；主旨
+tighten v. 使變緊；使繃緊
+timid adj. 膽小的；膽怯的
+tissue n. 衛生紙；細胞組織
+tolerate v. 容忍；寬容
+tourist n. 遊客；觀光客
+trademark n. 商標；特徵
+tragedy n. 悲劇；災難
+transfer v. 轉移；調動；轉帳
+transform v. 改變；使轉化
+translate v. 翻譯；轉化成……
+transplant n. 移植；移居
+tremendous adj. 極度的；驚人的
+trend n. 趨勢；流行
+triumph n. 勝利；成功
+tropical adj. 熱帶的
+tutor n. 家庭教師；私人教師
+twinkle v. 閃爍；閃耀
+typical adj. 典型的；有代表性的
+unaware adj. 沒有察覺的；不知道的
+undertake v. 承擔；進行
+unexpected adj. 突如其來的；意外的
+union n. 公會；聯盟
+unite v. 聯合；團結
+unless conj. 如果不……；除非
+upset adj. 非常難過；憂慮或生氣
+upward adv. 向上；升高地
+urban adj. 都市的；城市的
+urgent adj. 緊急的；急切的
+usage n. 慣用法；用法
+vacant adj. 空的；未被佔用的
+vague adj. 模糊的；不清楚的
+vain adj. 自負的；自視過高的；枉然的
+van n. 貨車；箱型車
+vanish v. 消失；突然不見
+variety n. 變化；各式各樣的事物
+vast adj. 廣大的；大量的
+vegetarian n. 素食者
+venture n. 投資；冒險事業
+version n. 說法；版本
+vigorous adj. 精力充沛的；充滿活力的
+violate v. 違反；侵犯
+violent adj. 粗暴的；狂暴的
+vision n. 遠見；視力
+vital adj. 極其重要的；關係重大的
+vivid adj. 生動的；鮮明的
+volcano n. 火山
+volunteer n. 自願參加者；義工
+voyage n. 旅行；航行
+wage n. 薪水；報酬
+wagon n. 四輪運貨馬車
+wander v. 漫遊；閒逛；徘徊
+warning n. 警告；預先通知
+wealth n. 財富；錢財
+web n. 網
+weed n. 野草；雜草
+weep v. 哭泣；流淚
+wheat n. 小麥
+whisper v. 低聲說出；私下說
+whistle n. 哨子；口哨聲
+wicked adj. 邪惡的；極壞的
+widespread adj. 遍及各地的；廣泛的
+wildlife n. 野生生物
+will n. 遺囑；意志力
+wink v. 眨眼；閃爍
+wipe v. 擦；抹
+wire n. 電線；金屬線
+wisdom n. 智慧；才智
+withdraw v. 收回；撤退
+wizard n. 男巫；術士
+worm n. 蟲
+wrap v. 包；裹
+wreck v. 撞毀；破壞
+wrinkle n. 皺紋；縐褶
+X-ray n. X光照片
+yawn v. 打呵欠
+yell v. 大聲喊叫；大聲說
+youthful adj. 朝氣蓬勃的；年輕的
+zone n. 區域；地帶
+`;
+
+        const parseData = () => {
+          const lines = rawText.split('\n').filter(line => line.trim() !== '');
+          const words = [];
+          let idCounter = 1;
+
+          lines.forEach(line => {
+            const match = line.match(/^(.+?)\s+([a-z]+\.?)\s+(.+)$/);
+            if (match) {
+                words.push({
+                    id: idCounter++,
+                    english: match[1].trim(),
+                    pos: match[2].trim(),
+                    chinese: match[3].trim()
+                });
+            }
+          });
+
+          return words;
+        };
+
+        const getFirstMeaning = (chinese) => {
+          return chinese.split('；')[0].replace(/（.*?）/g, ''); 
+        };
+
+        const getExampleSentenceData = (word) => {
+          const w = word.english;
+          const mean = getFirstMeaning(word.chinese);
+          const pos = word.pos.toLowerCase();
+
+          if (pos.startsWith('v')) {
+            const templates = [
+              { english: `I want to ${w} it.`, chinese: `我想要${mean}它。` },
+              { english: `Did you ${w} that?`, chinese: `你有${mean}那個嗎？` },
+              { english: `Please do not ${w}.`, chinese: `請不要${mean}。` },
+              { english: `They decided to ${w}.`, chinese: `他們決定${mean}。` }
+            ];
+            return templates[word.id % templates.length];
+          } else if (pos.startsWith('n')) {
+            const templates = [
+              { english: `This is a good ${w}.`, chinese: `這是一個好的${mean}。` },
+              { english: `I saw a ${w} there.`, chinese: `我在那裡看到一個${mean}。` },
+              { english: `The ${w} is very important.`, chinese: `這個${mean}很重要。` },
+              { english: `He has a new ${w}.`, chinese: `他有一個新的${mean}。` }
+            ];
+            return templates[word.id % templates.length];
+          } else if (pos.startsWith('adj')) {
+            const templates = [
+              { english: `It looks very ${w}.`, chinese: `它看起來非常${mean}。` },
+              { english: `She is a ${w} person.`, chinese: `她是一個${mean}人。` },
+              { english: `The result was ${w}.`, chinese: `結果是${mean}。` },
+              { english: `I feel quite ${w} today.`, chinese: `我今天覺得相當${mean}。` }
+            ];
+            return templates[word.id % templates.length];
+          } else if (pos.startsWith('adv')) {
+            const templates = [
+              { english: `She did it ${w}.`, chinese: `她${mean}做了這件事。` },
+              { english: `He spoke ${w}.`, chinese: `他${mean}說話。` },
+              { english: `It happened ${w}.`, chinese: `這件事${mean}發生了。` }
+            ];
+            return templates[word.id % templates.length];
+          } else {
+            return { english: `The word is ${w}.`, chinese: `這個單字是${mean}。` };
+          }
+        };
+
+        const getExampleSentence = (word) => {
+          return getExampleSentenceData(word).english;
+        };
+
+        const WORD_LIST = parseData();
+        const TOTAL_LESSONS = Math.ceil(WORD_LIST.length / 6);
+
+        // --- COMPONENTS ---
+
+        // Button
+        const Button = ({ variant = 'primary', className, children, ...props }) => {
+          const baseStyle = "px-6 py-2 rounded-lg font-medium transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+          
+          const variants = {
+            primary: "bg-blue-600 text-white hover:bg-blue-700",
+            secondary: "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50",
+            danger: "bg-red-500 text-white hover:bg-red-600",
+            success: "bg-green-600 text-white hover:bg-green-700"
+          };
+
+          return (
+            <button className={`${baseStyle} ${variants[variant]} ${className || ''}`} {...props}>
+                {children}
+            </button>
+          );
+        };
+
+        // WordCard
+        const WordCard = ({ word, isFlipped, onFlip }) => {
+          const playAudio = (e) => {
+            e.stopPropagation();
+            const utterance = new SpeechSynthesisUtterance(word.english);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+          };
+
+          return (
+            <div className="w-full max-w-md h-80 cursor-pointer mb-6" onClick={onFlip}>
+              <div className={`card-flip w-full h-full ${isFlipped ? 'flipped' : ''}`}>
+                <div className="card-inner w-full h-full shadow-xl rounded-2xl bg-white border border-gray-100">
+                  <div className="card-front">
+                    <h2 className="text-4xl font-bold text-gray-800 mb-2">{word.english}</h2>
+                    <span className="text-gray-500 italic mb-6">{word.pos}</span>
+                    <Button variant="secondary" onClick={playAudio} className="rounded-full w-12 h-12 flex items-center justify-center p-0">
+                       🔊
+                    </Button>
+                    <p className="absolute bottom-4 text-gray-400 text-sm animate-pulse">點擊翻牌</p>
+                  </div>
+                  <div className="card-back bg-blue-50 border-2 border-blue-100">
+                    <h2 className="text-2xl font-bold text-blue-800 mb-2">{word.english}</h2>
+                     <span className="text-blue-600 italic mb-4">{word.pos}</span>
+                    <div className="w-16 h-1 bg-blue-200 rounded mb-4"></div>
+                    <p className="text-3xl text-gray-800 font-medium px-4">{word.chinese}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // QuestionCard
+        const QuestionCard = ({ word, type, options, groupWords, onAnswer }) => {
+          const [status, setStatus] = useState('idle');
+          const [hint, setHint] = useState(false);
+          const [input, setInput] = useState('');
+          const inputRef = useRef(null);
+          const [selectedOption, setSelectedOption] = useState(null);
+          const [bubbleOptions, setBubbleOptions] = useState([]);
+          const [targetSentence, setTargetSentence] = useState('');
+          const [scramblePool, setScramblePool] = useState([]);
+          const [scrambleSelected, setScrambleSelected] = useState([]);
+          const [targetSentenceCh, setTargetSentenceCh] = useState('');
+          const [matchCards, setMatchCards] = useState([]);
+          const [matchSelection, setMatchSelection] = useState([]);
+          const [matchesFound, setMatchesFound] = useState(0);
+
+          useEffect(() => {
+            resetState();
+            if (type === TaskType.SPELL && inputRef.current) {
+              inputRef.current.focus();
+            }
+            if (type === TaskType.SPELL || type === TaskType.CHOICE || type === TaskType.LEARN) {
+               const timeout = setTimeout(() => { playAudio(); }, 300);
+               return () => clearTimeout(timeout);
+            }
+            if (type === TaskType.ASSEMBLE) setupAssemble();
+            else if (type === TaskType.SCRAMBLE) setupScramble();
+            else if (type === TaskType.MATCH && groupWords) setupMatch();
+          }, [word, type, groupWords]);
+
+          const resetState = () => {
+            setInput('');
+            setSelectedOption(null);
+            setStatus('idle');
+            setHint(false);
+            setScrambleSelected([]);
+            setMatchSelection([]);
+            setMatchesFound(0);
+          };
+
+          const setupAssemble = () => {
+            const sentence = getExampleSentence(word);
+            setTargetSentence(sentence);
+            const distractors = options || [];
+            const bubbles = [word.english, ...distractors.slice(0, 3)].sort(() => Math.random() - 0.5);
+            setBubbleOptions(bubbles);
+          };
+
+          const setupScramble = () => {
+            const { english, chinese } = getExampleSentenceData(word);
+            setTargetSentence(english);
+            setTargetSentenceCh(chinese);
+            const rawParts = english.replace(/[.,?]/g, '').split(' ').filter(x => x);
+            const commonDistractors = ['is', 'the', 'not', 'very', 'a', 'to', 'for', 'it', 'he', 'she', 'but', 'and', 'my', 'your'];
+            const validSet = new Set(rawParts.map(p => p.toLowerCase()));
+            const distractors = commonDistractors.filter(d => !validSet.has(d.toLowerCase())).sort(() => Math.random() - 0.5).slice(0, 2);
+            const poolItems = [...rawParts, ...distractors].map((text, idx) => ({ id: `tile-${idx}-${Math.random()}`, text: text }));
+            setScramblePool(poolItems.sort(() => Math.random() - 0.5));
+          };
+
+          const setupMatch = () => {
+            if (!groupWords) return;
+            const cards = [];
+            groupWords.forEach(w => {
+                cards.push({ id: `en-${w.id}`, content: w.english, type: 'en', wordId: w.id, isMatched: false });
+                cards.push({ id: `ch-${w.id}`, content: w.chinese, type: 'ch', wordId: w.id, isMatched: false });
+            });
+            setMatchCards(cards.sort(() => Math.random() - 0.5));
+          };
+
+          const playAudio = () => {
+            const utterance = new SpeechSynthesisUtterance(word.english);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+          };
+
+          const handleCorrect = () => {
+            setStatus('correct');
+            // Basic sound feedback
+            setTimeout(() => onAnswer(true), 1000);
+          };
+
+          const handleWrong = (delay = 1500) => {
+            setStatus('wrong');
+            setTimeout(() => {
+              setStatus('idle');
+              if (type !== TaskType.MATCH) {
+                  onAnswer(false);
+              } else {
+                  setMatchSelection([]);
+              }
+            }, delay);
+          };
+
+          const handleSubmitSpelling = (e) => {
+            e?.preventDefault();
+            if (status !== 'idle') return;
+            if (input.trim().toLowerCase() === word.english.trim().toLowerCase()) handleCorrect();
+            else handleWrong();
+          };
+
+          const handleOptionClick = (option) => {
+            if (status !== 'idle') return;
+            setSelectedOption(option);
+            if (option === word.chinese) handleCorrect();
+            else handleWrong();
+          };
+
+          const handleAssembleClick = (bubbleWord) => {
+            if (status !== 'idle') return;
+            setSelectedOption(bubbleWord);
+            if (bubbleWord === word.english) handleCorrect();
+            else handleWrong();
+          };
+
+          const handleScramblePoolClick = (item) => {
+             if (status !== 'idle') return;
+             setScramblePool(prev => prev.filter(i => i.id !== item.id));
+             setScrambleSelected(prev => [...prev, item]);
+          };
+
+          const handleScrambleSelectedClick = (item) => {
+             if (status !== 'idle') return;
+             setScrambleSelected(prev => prev.filter(i => i.id !== item.id));
+             setScramblePool(prev => [...prev, item]);
+          };
+
+          const checkScramble = () => {
+              const normalize = (s) => s.replace(/[.,?!]/g, '').toLowerCase().split(' ').join('');
+              const builtSentence = scrambleSelected.map(i => i.text).join(' ');
+              if (normalize(builtSentence) === normalize(targetSentence)) handleCorrect();
+              else handleWrong();
+          };
+
+          const handleMatchCardClick = (cardId) => {
+              if (status === 'wrong' || status === 'correct') return;
+              const clickedCard = matchCards.find(c => c.id === cardId);
+              if (!clickedCard || clickedCard.isMatched) return;
+              if (matchSelection.includes(cardId)) return;
+
+              const newSelection = [...matchSelection, cardId];
+              setMatchSelection(newSelection);
+
+              if (newSelection.length === 2) {
+                  const card1 = matchCards.find(c => c.id === newSelection[0]);
+                  const card2 = matchCards.find(c => c.id === newSelection[1]);
+                  
+                  if (card1 && card2 && card1.wordId === card2.wordId) {
+                      setTimeout(() => {
+                          setMatchCards(prev => prev.map(c => 
+                              (c.id === card1.id || c.id === card2.id) ? { ...c, isMatched: true } : c
+                          ));
+                          setMatchSelection([]);
+                          setMatchesFound(prev => {
+                              const newVal = prev + 1;
+                              if (groupWords && newVal >= groupWords.length) handleCorrect();
+                              return newVal;
+                          });
+                      }, 300);
+                  } else {
+                      setStatus('wrong');
+                      setTimeout(() => {
+                          setStatus('idle');
+                          setMatchSelection([]);
+                      }, 800);
+                  }
+              }
+          };
+
+          const renderHeader = () => {
+             if (type === TaskType.MATCH) {
+                 return (
+                     <div className="bg-blue-600 p-6 text-white text-center">
+                         <h2 className="text-xl font-bold">配對連連看</h2>
+                         <p className="text-blue-200 text-sm">點擊卡片將英文與中文配對</p>
+                     </div>
+                 )
+             }
+             return (
+                <div className="bg-blue-600 p-8 text-white text-center flex flex-col items-center justify-center relative min-h-[160px]">
+                    {(type === TaskType.SPELL || type === TaskType.CHOICE) && (
+                        <button onClick={playAudio} className="absolute top-4 right-4 p-2 bg-blue-500 rounded-full hover:bg-blue-400 transition-colors">🔊</button>
+                    )}
+                    {type === TaskType.SPELL && (
+                    <>
+                        <span className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-2">拼字測驗</span>
+                        <h2 className="text-2xl font-bold mb-4">{word.chinese}</h2>
+                        <div className="text-blue-200 italic">{word.pos}</div>
+                    </>
+                    )}
+                    {type === TaskType.CHOICE && (
+                    <>
+                        <span className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-2">選擇正確意思</span>
+                        <h2 className="text-4xl font-bold mb-2">{word.english}</h2>
+                        <div className="text-blue-200 italic">{word.pos}</div>
+                    </>
+                    )}
+                    {(type === TaskType.ASSEMBLE || type === TaskType.SCRAMBLE) && (
+                        <>
+                        <span className="text-blue-200 text-sm font-bold uppercase tracking-widest mb-2">
+                            {type === TaskType.ASSEMBLE ? '填空練習' : '句子重組'}
+                        </span>
+                        <div className="w-16 h-16 bg-blue-400 rounded-full mb-2 flex items-center justify-center text-2xl">👩‍🏫</div>
+                        <div className="bg-white text-blue-900 px-4 py-2 rounded-xl text-lg font-bold shadow-sm relative">
+                            {type === TaskType.ASSEMBLE ? `${word.chinese} (請填入單字)` : targetSentenceCh || `請重組句子`}
+                            <div className="absolute w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white top-[-8px] left-1/2 -translate-x-1/2"></div>
+                        </div>
+                        </>
+                    )}
+                </div>
+            );
+          };
+
+          return (
+            <div className={`w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col ${type === TaskType.MATCH ? 'min-h-[500px]' : 'min-h-[450px]'}`}>
+              {renderHeader()}
+              <div className="p-6 flex-1 flex flex-col justify-center">
+                {type === TaskType.SPELL && (
+                  <form onSubmit={handleSubmitSpelling} className="w-full">
+                    <div className="relative">
+                        <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="輸入英文單字..."
+                          className={`w-full text-center text-2xl p-4 border-2 rounded-xl outline-none transition-all ${
+                            status === 'wrong' ? 'border-red-500 bg-red-50' : 
+                            status === 'correct' ? 'border-green-500 bg-green-50' : 
+                            'border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                          }`}
+                          autoComplete="off" spellCheck="false"
+                        />
+                    </div>
+                    <div className="mt-8 flex gap-3">
+                      <Button type="button" variant="secondary" onClick={() => setHint(true)} className="flex-1 text-sm">💡 提示</Button>
+                      <Button type="submit" disabled={!input} className="flex-[2]">送出</Button>
+                    </div>
+                    {hint && <p className="text-center text-gray-400 mt-4 tracking-widest">{word.english.split('').map((c, i) => i % 2 === 0 ? c : '_').join(' ')}</p>}
+                  </form>
+                )}
+                {type === TaskType.CHOICE && options && (
+                  <div className="grid grid-cols-1 gap-3">
+                    {options.map((opt, idx) => {
+                      let btnStyle = "bg-gray-50 border-2 border-gray-100 text-gray-700 hover:border-blue-300 hover:bg-blue-50";
+                      if (status !== 'idle') {
+                        if (opt === word.chinese) btnStyle = "bg-green-100 border-green-500 text-green-800 font-bold";
+                        else if (opt === selectedOption) btnStyle = "bg-red-100 border-red-500 text-red-800";
+                        else btnStyle = "opacity-40";
+                      }
+                      return (
+                        <button key={idx} onClick={() => handleOptionClick(opt)} disabled={status !== 'idle'} className={`p-4 rounded-xl text-left transition-all duration-200 ${btnStyle}`}>
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {type === TaskType.ASSEMBLE && (
+                    <div className="flex flex-col h-full justify-between">
+                        <div className="text-xl text-center text-gray-700 font-medium mb-8 leading-relaxed">
+                           {targetSentence.split(word.english).map((part, i, arr) => (
+                               <React.Fragment key={i}>
+                                   {part}
+                                   {i < arr.length - 1 && (
+                                       <span className={`inline-block border-b-2 border-gray-400 px-2 min-w-[80px] text-center font-bold transition-all ${status === 'correct' ? 'text-green-600 border-green-500' : 'text-blue-600 border-blue-400'}`}>
+                                           {selectedOption || '_______'}
+                                       </span>
+                                   )}
+                               </React.Fragment>
+                           ))}
+                        </div>
+                        <div className="flex flex-wrap gap-3 justify-center">
+                            {bubbleOptions.map((opt, idx) => {
+                                 let bubbleStyle = "bg-white border-2 border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 active:scale-95";
+                                 if (status !== 'idle') {
+                                    if (opt === word.english) bubbleStyle = "bg-green-100 border-green-500 text-green-800 shadow-none";
+                                    else if (opt === selectedOption) bubbleStyle = "bg-red-100 border-red-500 text-red-800 shadow-none";
+                                    else bubbleStyle = "opacity-20 pointer-events-none";
+                                 }
+                                return <button key={idx} onClick={() => handleAssembleClick(opt)} disabled={status !== 'idle'} className={`px-4 py-2 rounded-2xl text-lg font-medium transition-all ${bubbleStyle}`}>{opt}</button>;
+                            })}
+                        </div>
+                    </div>
+                )}
+                {type === TaskType.SCRAMBLE && (
+                    <div className="flex flex-col h-full justify-between">
+                        <div className="min-h-[60px] border-b-2 border-gray-200 mb-6 flex flex-wrap gap-2 items-end pb-2 justify-center">
+                            {scrambleSelected.map((item) => (
+                                 <button key={item.id} onClick={() => handleScrambleSelectedClick(item)} className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg font-medium shadow-sm hover:bg-red-50 hover:text-red-500 transition-colors">
+                                    {item.text}
+                                 </button>
+                            ))}
+                        </div>
+                        <div className="flex flex-wrap gap-3 justify-center mb-8">
+                            {scramblePool.map((item) => (
+                                <button key={item.id} onClick={() => handleScramblePoolClick(item)} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-xl shadow-sm hover:bg-gray-50 active:scale-95 transition-all">
+                                    {item.text}
+                                </button>
+                            ))}
+                        </div>
+                        <Button onClick={checkScramble} disabled={status !== 'idle'} className="w-full">檢查</Button>
+                    </div>
+                )}
+                {type === TaskType.MATCH && (
+                    <div className="h-full">
+                         <div className="grid grid-cols-3 gap-3 h-full">
+                             {matchCards.map((card) => {
+                                 const isSelected = matchSelection.includes(card.id);
+                                 const isError = status === 'wrong' && isSelected;
+                                 let style = "bg-white border-2 border-gray-200 text-gray-600";
+                                 if (card.isMatched) style = "opacity-0 pointer-events-none"; 
+                                 else if (isError) style = "bg-red-100 border-red-500 text-red-800 animate-pulse";
+                                 else if (isSelected) style = "bg-blue-100 border-blue-500 text-blue-800 shadow-inner";
+                                 else style += " hover:bg-gray-50 shadow-sm";
+                                 return (
+                                    <button key={card.id} onClick={() => handleMatchCardClick(card.id)} className={`rounded-xl p-2 flex items-center justify-center text-sm font-bold transition-all aspect-[4/3] ${style}`}>
+                                        {card.content}
+                                    </button>
+                                 )
+                             })}
+                         </div>
+                    </div>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        // CourseList
+        const CourseList = ({ currentLessonIndex, lessonStats, onSelectLesson, onBack }) => {
+          const lessons = Array.from({ length: TOTAL_LESSONS }, (_, i) => i);
+          return (
+            <div className="min-h-screen bg-gray-50 p-6">
+              <div className="max-w-md mx-auto">
+                <div className="flex items-center mb-6">
+                    <button onClick={onBack} className="p-2 text-gray-500 hover:bg-gray-200 rounded-full mr-4">←</button>
+                    <h1 className="text-2xl font-bold text-gray-800">課程地圖</h1>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    {lessons.map(idx => {
+                        const stats = lessonStats[idx];
+                        const stars = stats?.stars || 0;
+                        return (
+                            <button key={idx} onClick={() => onSelectLesson(idx)} className={`aspect-square flex flex-col items-center justify-center rounded-2xl shadow-sm border-b-4 active:border-b-0 active:translate-y-1 transition-all ${idx === currentLessonIndex ? 'bg-blue-500 border-blue-700 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                                <span className="text-lg font-bold mb-1">{idx + 1}</span>
+                                <div className="flex text-xs">{[1, 2, 3].map(s => <span key={s} className={s <= stars ? 'text-yellow-300' : 'text-gray-300'}>★</span>)}</div>
+                            </button>
+                        )
+                    })}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // Main App
+        const STORAGE_KEY = 'voc_master_vanilla_v1';
+        const getInitialProgress = () => {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            try { return { currentLessonIndex: 0, completedWordIds: [], wordStats: {}, lessonStats: {}, lastStudyDate: Date.now(), totalXp: 0, dayStreak: 0, reminderEnabled: false, reminderTime: "20:00", ...JSON.parse(saved) }; } catch (e) {}
+          }
+          return { currentLessonIndex: 0, completedWordIds: [], wordStats: {}, lessonStats: {}, lastStudyDate: Date.now(), totalXp: 0, dayStreak: 0, reminderEnabled: false, reminderTime: "20:00" };
+        };
+
+        const App = () => {
+            const [progress, setProgress] = useState(getInitialProgress());
+            const [appState, setAppState] = useState(AppState.DASHBOARD);
+            const [sessionMode, setSessionMode] = useState('LESSON');
+            const [taskQueue, setTaskQueue] = useState([]);
+            const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+            const [combo, setCombo] = useState(0);
+            const [sessionXpGained, setSessionXpGained] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+            const [sessionErrors, setSessionErrors] = useState(0);
+
+            useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }, [progress]);
+
+            useEffect(() => {
+                if (progress.reminderEnabled && Notification.permission === 'default') Notification.requestPermission();
+                const checkReminder = () => {
+                    if (!progress.reminderEnabled) return;
+                    const now = new Date();
+                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    const lastNotified = localStorage.getItem('last_reminder_date');
+                    const todayStr = now.toDateString();
+                    if (currentTime === progress.reminderTime && lastNotified !== todayStr) {
+                        if (Notification.permission === 'granted') {
+                            new Notification("背單字時間到囉！🎓", { body: "每天半小時，積少成多！" });
+                            localStorage.setItem('last_reminder_date', todayStr);
+                        }
+                    }
+                };
+                const interval = setInterval(checkReminder, 15000);
+                return () => clearInterval(interval);
+            }, [progress.reminderEnabled, progress.reminderTime]);
+
+            const getWordStats = (id) => progress.wordStats[id] || { wordId: id, box: 0, nextReviewDate: 0, consecutiveCorrect: 0 };
+            const getNextReviewTime = (box) => {
+                const now = Date.now();
+                const daysToAdd = [1, 2, 4, 7, 14, 30][Math.min(box, 5)];
+                return now + (daysToAdd * 24 * 60 * 60 * 1000);
+            };
+            const generateOptions = (correctWord, count = 3) => {
+                const detractors = WORD_LIST.filter(w => w.id !== correctWord.id).sort(() => Math.random() - 0.5).slice(0, count);
+                return [correctWord, ...detractors].sort(() => Math.random() - 0.5).map(w => w.chinese);
+            };
+            const generateDistractorWords = (correctWord) => {
+                return WORD_LIST.filter(w => w.id !== correctWord.id).sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.english);
+            };
+
+            const startSession = (specificLessonIndex) => {
+                const tasks = [];
+                let uniqueWordIdCounter = 0;
+                const generateId = () => `task-${Date.now()}-${uniqueWordIdCounter++}`;
+                const lessonIdx = specificLessonIndex !== undefined ? specificLessonIndex : progress.currentLessonIndex;
+                const startIdx = lessonIdx * WORDS_PER_LESSON;
+                const newWords = WORD_LIST.slice(startIdx, startIdx + WORDS_PER_LESSON);
+                
+                newWords.forEach(word => tasks.push({ id: generateId(), word, type: TaskType.LEARN }));
+                newWords.forEach(word => tasks.push({ id: generateId(), word, type: TaskType.CHOICE }));
+                newWords.forEach(word => tasks.push({ id: generateId(), word, type: TaskType.ASSEMBLE }));
+                newWords.forEach(word => tasks.push({ id: generateId(), word, type: TaskType.SPELL }));
+                const scrambleWords = [...newWords].sort(() => Math.random() - 0.5).slice(0, 3);
+                scrambleWords.forEach(word => tasks.push({ id: generateId(), word, type: TaskType.SCRAMBLE }));
+
+                const finalQueue = [
+                    ...tasks.filter(t => t.type === TaskType.LEARN),
+                    ...tasks.filter(t => t.type === TaskType.CHOICE).sort(() => Math.random() - 0.5),
+                    ...tasks.filter(t => t.type === TaskType.ASSEMBLE).sort(() => Math.random() - 0.5),
+                    ...tasks.filter(t => t.type === TaskType.SPELL).sort(() => Math.random() - 0.5),
+                    ...tasks.filter(t => t.type === TaskType.SCRAMBLE).sort(() => Math.random() - 0.5),
+                ];
+                finalQueue.push({ id: generateId(), word: newWords[0], type: TaskType.MATCH, groupWords: newWords });
+
+                setTaskQueue(finalQueue);
+                setCurrentTaskIndex(0);
+                setCombo(0);
+                setSessionXpGained(0);
+                setSessionErrors(0);
+                setIsFlipped(false);
+                setSessionMode('LESSON');
+                if (specificLessonIndex !== undefined) setProgress(p => ({...p, currentLessonIndex: specificLessonIndex}));
+                setAppState(AppState.SESSION);
+            };
+
+            const startReviewSession = () => {
+                const now = Date.now();
+                let uniqueWordIdCounter = 0;
+                const generateId = () => `task-review-${Date.now()}-${uniqueWordIdCounter++}`;
+                const candidateIds = new Set([...progress.completedWordIds, ...Object.keys(progress.wordStats).map(Number)]);
+                if (candidateIds.size === 0) { alert("目前還沒有學過的單字可以複習喔！"); return; }
+                const candidates = WORD_LIST.filter(w => candidateIds.has(w.id));
+                const sortedCandidates = candidates.sort((a, b) => {
+                    const statsA = getWordStats(a.id);
+                    const statsB = getWordStats(b.id);
+                    const isDueA = statsA.nextReviewDate <= now;
+                    const isDueB = statsB.nextReviewDate <= now;
+                    if (isDueA && !isDueB) return -1;
+                    if (!isDueA && isDueB) return 1;
+                    return 0.5 - Math.random();
+                });
+                const sessionWords = sortedCandidates.slice(0, 12);
+                const tasks = [];
+                sessionWords.forEach(word => {
+                    const stats = getWordStats(word.id);
+                    if (stats.box <= 1) { tasks.push({ id: generateId(), word, type: TaskType.LEARN }); tasks.push({ id: generateId(), word, type: TaskType.ASSEMBLE }); }
+                    else if (stats.box <= 3) { tasks.push({ id: generateId(), word, type: TaskType.SCRAMBLE }); tasks.push({ id: generateId(), word, type: TaskType.SPELL }); }
+                    else { tasks.push({ id: generateId(), word, type: TaskType.SPELL }); }
+                });
+                if (sessionWords.length >= 6) { tasks.push({ id: generateId(), word: sessionWords[0], type: TaskType.MATCH, groupWords: sessionWords.slice(0, 6) }); }
+                setTaskQueue(tasks);
+                setCurrentTaskIndex(0);
+                setCombo(0);
+                setSessionXpGained(0);
+                setSessionErrors(0);
+                setIsFlipped(false);
+                setSessionMode('REVIEW');
+                setAppState(AppState.SESSION);
+            };
+
+            const handleTaskComplete = (success) => {
+                const currentTask = taskQueue[currentTaskIndex];
+                const wordId = currentTask.word.id;
+                let xpGain = 0;
+                if (success) {
+                    setCombo(c => c + 1);
+                    xpGain = 10 + (combo * 2);
+                    if (!currentTask.isRetry && currentTask.type !== TaskType.MATCH) {
+                        setProgress(prev => {
+                            const oldStat = getWordStats(wordId);
+                            let newBox = oldStat.box;
+                            if (currentTask.type !== TaskType.LEARN) newBox = Math.min(newBox + 1, 5);
+                            return { ...prev, wordStats: { ...prev.wordStats, [wordId]: { ...oldStat, box: newBox, consecutiveCorrect: oldStat.consecutiveCorrect + 1, nextReviewDate: getNextReviewTime(newBox) } } };
+                        });
+                    }
+                } else {
+                    setCombo(0);
+                    setSessionErrors(e => e + 1);
+                    if (currentTask.type !== TaskType.MATCH) {
+                        setProgress(prev => {
+                            const oldStat = getWordStats(wordId);
+                            return { ...prev, wordStats: { ...prev.wordStats, [wordId]: { ...oldStat, box: 0, consecutiveCorrect: 0, nextReviewDate: Date.now() } } };
+                        });
+                        setTaskQueue(prev => {
+                            const remaining = prev.slice(currentTaskIndex + 1);
+                            const penaltyLearn = { id: `retry-learn-${Date.now()}`, word: currentTask.word, type: TaskType.LEARN, isRetry: true };
+                            const retryType = currentTask.type === TaskType.SCRAMBLE ? TaskType.ASSEMBLE : currentTask.type;
+                            const penaltyRetry = { id: `retry-action-${Date.now()}`, word: currentTask.word, type: retryType, isRetry: true };
+                            const newQueue = [...remaining];
+                            newQueue.splice(0, 0, penaltyLearn);
+                            newQueue.splice(2, 0, penaltyRetry);
+                            return [...prev.slice(0, currentTaskIndex + 1), ...newQueue];
+                        });
+                    }
+                }
+                setSessionXpGained(prev => prev + xpGain);
+                if (currentTaskIndex < taskQueue.length - 1) { setCurrentTaskIndex(prev => prev + 1); setIsFlipped(false); }
+                else { finishSession(); }
+            };
+
+            const finishSession = () => {
+                const tasksCount = taskQueue.filter(t => !t.isRetry && t.type !== TaskType.LEARN).length;
+                let stars = 1;
+                if (sessionErrors === 0) stars = 3;
+                else if (sessionErrors <= tasksCount * 0.1) stars = 2;
+
+                setProgress(prev => {
+                    const lastDate = new Date(prev.lastStudyDate);
+                    const today = new Date();
+                    const isSameDay = lastDate.getDate() === today.getDate() && lastDate.getMonth() === today.getMonth();
+                    const isYesterday = (today.getTime() - lastDate.getTime()) < (48 * 60 * 60 * 1000) && !isSameDay;
+                    let newStreak = prev.dayStreak;
+                    if (isYesterday) newStreak += 1;
+                    else if (!isSameDay) newStreak = 1;
+
+                    let newLessonStats = { ...prev.lessonStats };
+                    let newCompletedIds = [...prev.completedWordIds];
+                    if (sessionMode === 'LESSON') {
+                        const currentLessonStats = prev.lessonStats[prev.currentLessonIndex] || { lessonIndex: prev.currentLessonIndex, stars: 0, isCompleted: false };
+                        newLessonStats[prev.currentLessonIndex] = { ...currentLessonStats, stars: Math.max(currentLessonStats.stars, stars), isCompleted: true };
+                        const newWordIds = taskQueue.filter(t => t.type === TaskType.LEARN && !t.isRetry).map(t => t.word.id);
+                        newCompletedIds = [...new Set([...newCompletedIds, ...newWordIds])];
+                    }
+                    return { ...prev, completedWordIds: newCompletedIds, lastStudyDate: Date.now(), totalXp: prev.totalXp + sessionXpGained, dayStreak: newStreak, lessonStats: newLessonStats };
+                });
+                setAppState(AppState.SUMMARY);
+            };
+
+            const renderDashboard = () => (
+                <div className="flex flex-col items-center min-h-screen bg-gray-50 p-6 pb-20">
+                  <div className="w-full max-w-lg space-y-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <div><h1 className="text-3xl font-bold text-gray-800">Hi, 學習者</h1><p className="text-gray-500">準備好今天的挑戰了嗎？</p></div>
+                      <div className="flex items-center gap-3"><button onClick={() => setAppState(AppState.SETTINGS)} className="p-2 bg-white rounded-full shadow-sm text-gray-500 hover:text-blue-500 transition-colors">⚙️</button><div className="text-right"><div className="text-2xl font-bold text-orange-500">🔥 {progress.dayStreak}</div></div></div>
+                    </div>
+                    <div className="bg-white rounded-3xl p-6 shadow-md grid grid-cols-2 gap-4">
+                        <div className="text-center p-4 bg-blue-50 rounded-2xl"><div className="text-3xl font-bold text-blue-600">{progress.totalXp}</div><div className="text-xs text-blue-400 font-bold uppercase tracking-wide">總經驗值 (XP)</div></div>
+                        <div className="text-center p-4 bg-purple-50 rounded-2xl"><div className="text-3xl font-bold text-purple-600">{progress.completedWordIds.length}</div><div className="text-xs text-purple-400 font-bold uppercase tracking-wide">已精通單字</div></div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="bg-white rounded-3xl p-6 shadow-md relative overflow-hidden border-l-8 border-blue-500">
+                             <div className="relative z-10"><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-xl text-gray-800">主課程進度</h3><span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">Lesson {progress.currentLessonIndex + 1}</span></div><p className="text-gray-500 text-sm mb-6">包含 {WORDS_PER_LESSON} 個新單字。</p><div className="flex gap-3"><Button onClick={() => startSession()} className="flex-1 shadow-blue-300 shadow-lg py-3">開始學習</Button><Button variant="secondary" onClick={() => setAppState(AppState.COURSES)} className="px-4">切換</Button></div></div>
+                        </div>
+                        <div className="bg-gradient-to-r from-orange-100 to-amber-50 rounded-3xl p-6 shadow-md relative overflow-hidden border border-orange-200">
+                             <div className="relative z-10"><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-xl text-orange-900">智能複習</h3><span className="bg-orange-200 text-orange-800 px-3 py-1 rounded-full text-xs font-bold">強化記憶</span></div><p className="text-orange-800/70 text-sm mb-6">針對弱點單字進行拼字與重組測驗。</p><Button onClick={startReviewSession} className="w-full bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200 shadow-lg py-3">開始複習舊單字</Button></div>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+            );
+
+            const renderSettings = () => (
+                <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
+                    <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-md">
+                        <div className="flex items-center mb-8"><button onClick={() => setAppState(AppState.DASHBOARD)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full mr-4">←</button><h1 className="text-2xl font-bold text-gray-800">設定</h1></div>
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+                                <div><h3 className="font-bold text-gray-800">每日提醒</h3><p className="text-sm text-gray-500">固定時間提醒您背單字</p></div>
+                                <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" checked={progress.reminderEnabled} onChange={(e) => { const enabled = e.target.checked; setProgress(p => ({...p, reminderEnabled: enabled})); if(enabled) Notification.requestPermission(); }} className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 right-6" style={{right: progress.reminderEnabled ? '0' : 'auto', left: progress.reminderEnabled ? 'auto' : '0', border: '1px solid #e5e7eb'}} /><label className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${progress.reminderEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}></label></div>
+                            </div>
+                            {progress.reminderEnabled && (<div className="flex justify-between items-center animate-fade-in-down"><h3 className="font-bold text-gray-800">提醒時間</h3><input type="time" value={progress.reminderTime} onChange={(e) => setProgress(p => ({...p, reminderTime: e.target.value}))} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5" /></div>)}
+                            <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-800">💡 <span className="font-bold">小撇步：</span> 將此網頁加入主畫面 (Add to Home Screen) 並保持手機通知開啟。</div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderSession = () => {
+                const currentTask = taskQueue[currentTaskIndex];
+                if (!currentTask) return null;
+                const progressPercent = ((currentTaskIndex) / taskQueue.length) * 100;
+                return (
+                    <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4">
+                        <div className="w-full max-w-md flex justify-between items-center mb-6 pt-4"><button onClick={() => setAppState(AppState.DASHBOARD)} className="text-gray-400 font-bold text-sm">✕ 退出</button><div className="flex-1 mx-4 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-300" style={{width: `${progressPercent}%`}}></div></div><div className="text-orange-500 font-bold text-sm">🔥 {combo}</div></div>
+                        <div className="w-full max-w-md flex-1 flex flex-col justify-center pb-20">
+                            {currentTask.type === TaskType.LEARN ? (
+                                <div className="flex flex-col items-center">
+                                    <div className="mb-4 text-gray-500 font-medium tracking-wide text-sm uppercase">新單字學習</div>
+                                    <WordCard word={currentTask.word} isFlipped={isFlipped} onFlip={() => setIsFlipped(true)} />
+                                     <div className="mt-8 w-full"><Button onClick={() => handleTaskComplete(true)} className="w-full py-4 text-lg" disabled={!isFlipped}>我記住了，下一步</Button>{!isFlipped && <p className="text-center text-gray-400 text-xs mt-3">請點擊卡片查看解釋與發音</p>}</div>
+                                </div>
+                            ) : (
+                                <QuestionCard key={currentTask.id} word={currentTask.word} type={currentTask.type} options={currentTask.type === TaskType.CHOICE ? generateOptions(currentTask.word) : generateDistractorWords(currentTask.word)} groupWords={currentTask.groupWords} onAnswer={handleTaskComplete} />
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderSummary = () => (
+                <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl">
+                        <div className="text-6xl mb-6">🎉</div>
+                        <h2 className="text-3xl font-bold mb-2">{sessionMode === 'REVIEW' ? '複習完成！' : '課程完成！'}</h2>
+                        <div className="flex justify-center gap-1 mb-6 text-2xl text-yellow-300">{sessionErrors === 0 ? '★★★' : sessionErrors < 3 ? '★★☆' : '★☆☆'}</div>
+                        <div className="grid grid-cols-2 gap-4 mb-8"><div className="bg-white/20 rounded-2xl p-4"><div className="text-sm text-blue-200 mb-1">獲得 XP</div><div className="text-3xl font-bold">+{sessionXpGained}</div></div><div className="bg-white/20 rounded-2xl p-4"><div className="text-sm text-blue-200 mb-1">錯誤次數</div><div className="text-3xl font-bold">{sessionErrors}</div></div></div>
+                        <Button onClick={() => setAppState(AppState.DASHBOARD)} variant="secondary" className="w-full py-4 text-blue-900 font-bold">返回首頁</Button>
+                    </div>
+                </div>
+            );
+
+            if (appState === AppState.SESSION) return renderSession();
+            if (appState === AppState.SUMMARY) return renderSummary();
+            if (appState === AppState.COURSES) return <CourseList currentLessonIndex={progress.currentLessonIndex} lessonStats={progress.lessonStats} onSelectLesson={(idx) => startSession(idx)} onBack={() => setAppState(AppState.DASHBOARD)} />;
+            if (appState === AppState.SETTINGS) return renderSettings();
+            return renderDashboard();
+        };
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
