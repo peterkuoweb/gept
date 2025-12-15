@@ -1,0 +1,16 @@
+{
+  "name": "VocabMaster - 每日單字記憶 (Lite)",
+  "short_name": "VocabMaster Lite",
+  "description": "Scientific vocabulary learning app (No Build Version).",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3429/3429149.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
